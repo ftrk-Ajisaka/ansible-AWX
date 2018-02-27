@@ -1,0 +1,11 @@
+app_tool_name: ansible
+app_username: ec2-user
+app_usergroup: ec2-user
+# app_server_name: ansible_test
+app_basic_user: 112233
+app_basic_password: 445566
+app_php_my_admin_url: https://112233:445566@www.isann.info/phpMyAdmin-4.2.5-all-languages.zip
+app_php_my_admin_file_name: phpMyAdmin-4.2.5-all-languages
+app_date_timezone: Asia/Tokyo
+# app_session_save_path: tcp://localhost:11211
+# app_mysql_host: localhost

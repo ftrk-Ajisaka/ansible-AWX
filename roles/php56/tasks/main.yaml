@@ -1,0 +1,148 @@
+# apache24
+- name: install aws apache24
+  yum: name={{ item }} state=installed
+  with_items:
+    - httpd24
+    - httpd24-devel
+  notify: restart_apache
+- name: setting httpd.conf
+  template: src=templates/webserver/conf/httpd24.conf.j2 dest=/etc/httpd/conf/httpd.conf owner=root group=root mode=0644
+  notify: restart_apache
+- name: setting permission
+  file: path=/var/www/html state=directory recurse=yes owner={{ app_username }} group={{ app_usergroup }}
+  notify: restart_apache
+- name: upload test html
+  template: src=templates/webserver/data/index.html.j2 dest=/var/www/html/index.html owner={{ app_username }} group={{ app_usergroup }}
+# basic auth
+- name: basic auth
+  shell: htpasswd -b -c /etc/httpd/conf/.htpasswd {{ app_basic_user }} {{ app_basic_password }}
+- name: setting permission
+  file: path=/etc/httpd/conf/.htpasswd owner={{ app_username }} group={{ app_usergroup }}
+- name: upload htaccess
+  template: src=templates/webserver/data/.htaccess.j2 dest=/var/www/html/.htaccess owner={{ app_username }} group={{ app_usergroup }}
+# memcache server
+- name: install memcache server
+  yum: name={{ item }} state=installed
+  with_items:
+    - gcc
+    - make
+    - memcached
+  notify: restart_memcached
+# mysql server
+- name: install mysql server
+  yum: name={{ item }} state=installed
+  with_items:
+    - mysql-server
+  notify: restart_mysqld
+- name: upload my.cnf
+  template: src=templates/webserver/conf/my.cnf.j2 dest=/etc/my.cnf owner=root group=root
+  notify: restart_mysqld
+# php56
+- name: install php56
+  yum: name={{ item }} state=installed
+  with_items:
+    - automake
+    - autoconf
+    - libxslt
+    - libtool-ltdl
+    - php56
+    - php56-mbstring
+    - php56-devel
+    - php56-mcrypt
+    - php-pear
+- name: upload php.ini
+  template: src=templates/webserver/conf/php.ini.j2 dest=/etc/php.ini owner=root group=root
+- name: replace local php_value1
+  replace:
+    dest=/etc/httpd/conf.d/php.conf
+    regexp='^( +)php_value session.save_handler'
+    replace="\1#php_value session.save_handler"
+    backup=yes
+- name: replace local php_value2
+  replace:
+    dest=/etc/httpd/conf.d/php.conf
+    regexp='^( +)php_value session.save_path'
+    replace="\1#php_value session.save_path"
+    backup=yes
+- name: replace php.ini for 5.6 file session path
+  replace:
+    dest=/etc/php.ini
+    regexp='^session.save_path.*'
+    replace='session.save_path =  /var/lib/php/5.6/session'
+    backup=yes
+  notify: restart_apache
+- name: symboric link /etc/php.d
+  file: src=/etc/php-5.6.d dest=/etc/php.d state=link owner=root group=root
+- name: upload info.php
+  template: src=templates/webserver/data/info.php.j2 dest=/var/www/html/info.php owner={{ app_username }} group={{ app_usergroup }}
+  notify: restart_apache
+# php-mysql
+- name: install php-mysql
+  yum: name={{ item }} state=installed
+  with_items:
+    - mysql
+    - php56-mysqlnd
+  notify: restart_apache
+# image magick
+- name: install ImageMagic app
+  yum: name={{ item }} state=installed
+  with_items:
+    - gcc
+    - make
+    - ImageMagick
+    - ImageMagick-devel
+    - libjpeg-devel
+# php-imagick (php imagemagick library)
+- name: install imagick
+  shell: |
+    echo "" | pecl install imagick
+    echo -e "\nextension=imagick.so" >> /etc/php.d/imagick.ini
+  args:
+    creates: /etc/php.d/imagick.ini
+  notify: restart_apache
+# php-memcache
+- name: install php-memcache
+  yum: name={{ item }} state=installed
+  with_items:
+    - gcc
+    - make
+    - zlib-devel
+- name: install memcache
+  shell: |
+    echo "" | pecl install memcache
+    echo -e "\nextension=memcache.so" >> /etc/php.d/memcache.ini
+  args:
+    creates: /etc/php.d/memcache.ini
+  notify: restart_apache
+# phpMyAdmin
+- name: install php-memcache
+  yum: name={{ item }} state=installed
+  with_items:
+    - unzip
+- name: setup phpMyAdmin
+  shell: |
+    curl {{ app_php_my_admin_url }} >> phpMyAdmin.zip
+    unzip phpMyAdmin.zip
+    mv {{ app_php_my_admin_file_name }} /var/www/html/phpMyAdmin
+  args:
+    creates: /var/www/html/phpMyAdmin/config.inc.gphp
+    chdir: /tmp
+- name: upload phpMyAdmin config
+  template: src=templates/webserver/conf/config.php.j2 dest=/var/www/html/phpMyAdmin/config.inc.php owner={{ app_username }} group={{ app_usergroup }}
+# modify php session for memcache
+- name: replace php.ini1
+  replace:
+    dest=/etc/php.ini
+    regexp='^session.save_handler.*'
+    replace='session.save_handler = memcache'
+    backup=yes
+  notify: restart_apache
+- name: repreplace php.ini2
+  replace:
+    dest=/etc/php.ini
+    regexp='^session.save_path.*'
+    replace='session.save_path = "{{ app_session_save_path }}"'
+    backup=yes
+  notify: restart_apache
+- name: setup session check php script
+  template: src=templates/webserver/data/st.php.j2 dest=/var/www/html/st.php owner={{ app_username }} group={{ app_usergroup }}
