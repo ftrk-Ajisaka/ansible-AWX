@@ -21,13 +21,13 @@
 - name: upload htaccess
   template: src=templates/webserver/data/.htaccess.j2 dest=/var/www/html/.htaccess owner={{ app_username }} group={{ app_usergroup }}
 # memcache server
-- name: install memcache server
-  yum: name={{ item }} state=installed
-  with_items:
-    - gcc
-    - make
-    - memcached
-  notify: restart_memcached
+# - name: install memcache server
+#   yum: name={{ item }} state=installed
+#   with_items:
+#     - gcc
+#     - make
+#     - memcached
+#   notify: restart_memcached
 # mysql server
 - name: install mysql server
   yum: name={{ item }} state=installed
@@ -84,22 +84,22 @@
     - php56-mysqlnd
   notify: restart_apache
 # image magick
-- name: install ImageMagic app
-  yum: name={{ item }} state=installed
-  with_items:
-    - gcc
-    - make
-    - ImageMagick
-    - ImageMagick-devel
-    - libjpeg-devel
+# - name: install ImageMagic app
+#   yum: name={{ item }} state=installed
+#   with_items:
+#     - gcc
+#     - make
+#     - ImageMagick
+#     - ImageMagick-devel
+#     - libjpeg-devel
 # php-imagick (php imagemagick library)
-- name: install imagick
-  shell: |
-    echo "" | pecl install imagick
-    echo -e "\nextension=imagick.so" >> /etc/php.d/imagick.ini
-  args:
-    creates: /etc/php.d/imagick.ini
-  notify: restart_apache
+# - name: install imagick
+#   shell: |
+#     echo "" | pecl install imagick
+#     echo -e "\nextension=imagick.so" >> /etc/php.d/imagick.ini
+#   args:
+#     creates: /etc/php.d/imagick.ini
+#   notify: restart_apache
 # php-memcache
 - name: install php-memcache
   yum: name={{ item }} state=installed
